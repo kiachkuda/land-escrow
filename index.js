@@ -35,7 +35,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage }); 
 app.use(upload.fields([
     { name: 'title_deed_copy', maxCount: 1 },
-    { name: 'user_id_copy', maxCount: 1 }
+    { name: 'user_id_copy', maxCount: 1 },
+    {name: "images", maxCount:5}
 ]));   
 
 // Connect to MongoDB

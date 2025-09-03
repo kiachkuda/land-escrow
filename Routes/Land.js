@@ -13,6 +13,6 @@ router.post("/", verifyToken, isadminOrSeller, Land.createLand);
 router.get("/", Land.getLands);
 router.get("/:id/", Land.getLandById);
 router.put("/:id", verifyToken, Land.updateLand);
-router.delete("/:id", verifyToken , Land.deleteLand);
+router.delete("/:id", verifyToken, Land.deleteLand);
 
 module.exports = router;

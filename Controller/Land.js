@@ -1,5 +1,5 @@
 const Land = require("../Models/Land");
-
+const User = require("../Models/User");
 
 
 exports.createLand = async (req, res) => {
@@ -56,6 +56,16 @@ exports.createLand = async (req, res) => {
     }
     if (req.files["user_id_copy"]) {
       documents.user_id_copy = req.files["user_id_copy"][0].path;
+    }
+
+    const userId = req.body._id.toString(); // from verifyToken middleware
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: User ID missing" });
+    }
+    // Check oif the user exist on the DB
+    const userExist = await User.findById(userId);
+    if (!userExist) {
+      return res.status(404).json({ message: "User not found" });
     }
 
     const land = new Land({
@@ -121,11 +131,13 @@ exports.updateLand = async (req, res) => {
     const land = await Land.findById(req.params.id);
     if (!land) return res.status(404).json({ message: "Land not found" });
 
+     console.log(land.owner_id );
+
     // check if current user is the owner
-    if (land.owner_id.toString() !== req.user._id.toString()) {
+    if (land.owner_id.toString() !== req.body._id ) {
       return res.status(403).json({ message: "Not authorized to update this land" });
     }
-
+   
     Object.assign(land, req.body);
     const updatedLand = await land.save();
     res.status(200).json(updatedLand);
@@ -140,11 +152,8 @@ exports.deleteLand = async (req, res) => {
     const land = await Land.findById(req.params.id);
     if (!land) return res.status(404).json({ message: "Land not found" });
 
-    if (land.owner_id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized to delete this land" });
-    }
-
-    await land.remove();
+  
+    await land.deleteOne();
     res.status(200).json({ message: "Land deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
