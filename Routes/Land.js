@@ -1,13 +1,18 @@
 const Land = require("../Controller/Land");
 const express = require("express");
+
+
+const { verifyToken, isAdmin, isSeller, isadminOrSeller} = require("../Controller/Auth");
+
 const router = express.Router();
 
 
 
-router.post("/", Land.createLand);
+
+router.post("/", verifyToken, isadminOrSeller, Land.createLand);
 router.get("/", Land.getLands);
-// router.get("/:id/land", Land.getLandById);
-// router.put("/:id/land", Land.updateLand);
-// router.delete("/delete/:id", Land.deleteLand);
+router.get("/:id/", Land.getLandById);
+router.put("/:id", verifyToken, Land.updateLand);
+router.delete("/:id", verifyToken , Land.deleteLand);
 
 module.exports = router;

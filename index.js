@@ -8,6 +8,7 @@ const fs = require("fs");
 
 // Import routes
 const landRoutes = require("./Routes/Land");
+const userRoutes = require("./Routes/Auth");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,9 +46,11 @@ mongoose
   })
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("MongoDB connection error:", err));
+
+
 // Routes
 app.use("/api/v1/lands", landRoutes);
-
+app.use("/api/v1/users", userRoutes);
 
 // Start server
 app.listen(PORT, () => {
