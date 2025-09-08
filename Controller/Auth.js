@@ -58,7 +58,7 @@ dotenv.config();
 
 const forgotPassword = async (req, res) => {
   try {
-    const email = req.body;
+    const {email} = req.body;
     const user = await User.findOne({ email });
     if(!user){
       return res.status(403).json({message:"Email not found"})
@@ -94,9 +94,30 @@ const forgotPassword = async (req, res) => {
     res.status(200).json({ message: "Verification code sent to email" });
 
   }catch(err){
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: err.message });
   }
 }
+
+const resetPassword = async (req, res) => {
+  try {
+    const { code, newPassword } = req.body;
+    if (!code || !newPassword) {
+      return res.status(400).json({ message: "Code and new password are required" });
+    }
+    const user = await User.findOne({ resetCode: code, resetCodeExpiry: { $gt: Date.now() } });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired code" });
+    }
+    const salt = await bcrypt.genSalt(10);
+    user.password_hash = await bcrypt.hash(newPassword, salt);
+    user.resetCode = undefined;
+    user.resetCodeExpiry = undefined;
+    await user.save();
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 
  const verifyToken = (req, res, next) =>{
@@ -131,8 +152,6 @@ const isadminOrSeller = (req, res, next) => {
   next();
 }
 
- 
-
 module.exports = {
   register,
   login,
@@ -140,5 +159,6 @@ module.exports = {
   isAdmin,
   isSeller,
   isadminOrSeller,
-  forgotPassword
+  forgotPassword,
+  resetPassword
 };
