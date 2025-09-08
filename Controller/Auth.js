@@ -2,6 +2,8 @@ const User = require("../Models/User");
 const bcrypt = require("bcrypt");
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
 
 // Load environment variables
@@ -54,6 +56,49 @@ dotenv.config();
   } 
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const email = req.body;
+    const user = await User.findOne({ email });
+    if(!user){
+      return res.status(403).json({message:"Email not found"})
+    }
+
+    // Generate a 6-digit verification code
+    const verificationCode = crypto.randomInt(100000, 999999).toString();
+
+    // Save code and expiry to user (optional, if you want to verify later)
+    user.resetCode = verificationCode;
+    user.resetCodeExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await user.save();
+
+    // Configure nodemailer
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Email options
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Your Password Reset Verification Code",
+      text: `Your verification code is: ${verificationCode}`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: "Verification code sent to email" });
+
+  }catch(err){
+    res.status(500).json({ message: error.message });
+  }
+}
+
+
  const verifyToken = (req, res, next) =>{
   const token = req.headers["authorization"]?.split(" ")[1]; // Bearer <token>
   if (!token) return res.status(403).json({ error: "No token provided" });
@@ -94,5 +139,6 @@ module.exports = {
   verifyToken,
   isAdmin,
   isSeller,
-  isadminOrSeller
+  isadminOrSeller,
+  forgotPassword
 };

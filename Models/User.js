@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
       enum: ["buyer", "seller", "admin"],
       default: "seller",
     },
+    resetCode: { type: String },
+    resetCodeExpiry: { type: Date },
   },
   { timestamps: true }
 );

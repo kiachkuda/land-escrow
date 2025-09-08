@@ -2,7 +2,7 @@ const Land = require("../Models/Land");
 const User = require("../Models/User");
 
 
-exports.createLand = async (req, res) => {
+const createLand = async (req, res) => {
   try {
     const {
       title,
@@ -94,7 +94,7 @@ exports.createLand = async (req, res) => {
 
 
 //  Get all land listings (with filters)
-exports.getLands = async (req, res) => {
+const getLands = async (req, res) => {
   try {
     const { county, min_price, max_price, status } = req.query;
     let filter = {};
@@ -115,7 +115,7 @@ exports.getLands = async (req, res) => {
 };
 
 //  Get single land by ID
-exports.getLandById = async (req, res) => {
+const getLandById = async (req, res) => {
   try {
     const land = await Land.findById(req.params.id).populate("owner_id", "name email phone");
     if (!land) return res.status(404).json({ message: "Land not found" });
@@ -126,20 +126,37 @@ exports.getLandById = async (req, res) => {
 };
 
 //  Update land listing (owner only)
-exports.updateLand = async (req, res) => {
+const updateLand = async (req, res) => {
   try {
     const land = await Land.findById(req.params.id);
     if (!land) return res.status(404).json({ message: "Land not found" });
 
-     console.log(land.owner_id );
+     console.log(land.owner_id.toHexString(), req.body._id);
 
     // check if current user is the owner
     if (land.owner_id.toString() !== req.body._id ) {
       return res.status(403).json({ message: "Not authorized to update this land" });
     }
    
-    Object.assign(land, req.body);
+    //Update Land Details,  Price, Status
+    const updatableFields = ["title", "description", "price", "size_acres", "status"];
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        land[field] = req.body[field];
+      }
+    });
+
+    // Update Location
+    if (req.body.location) {
+      const locFields = ["county", "sub_county", "coordinates"];
+      locFields.forEach(field => {
+        if (req.body.location[field] !== undefined) {
+          land.location[field] = req.body.location[field];
+        }
+      });
+    }
     const updatedLand = await land.save();
+
     res.status(200).json(updatedLand);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -147,15 +164,45 @@ exports.updateLand = async (req, res) => {
 };
 
 //  Delete land listing (owner only)
-exports.deleteLand = async (req, res) => {
+const deleteLand = async (req, res) => {
   try {
     const land = await Land.findById(req.params.id);
     if (!land) return res.status(404).json({ message: "Land not found" });
 
-  
     await land.deleteOne();
     res.status(200).json({ message: "Land deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+
+    // Admin: Update 'verified' field of a land
+    const verifyLand = async (req, res) => {
+      try {
+        const { verified } = req.body;
+        if (typeof verified !== "boolean") {
+          return res.status(400).json({ message: "'verified' field must be a boolean" });
+        }
+
+        const land = await Land.findById(req.params.id);
+        if (!land) return res.status(404).json({ message: "Land not found" });
+
+        land.verified = verified;
+        await land.save();
+
+        res.status(200).json({ message: `Land verification status updated to ${verified}` });
+      } catch (error) {
+        res.status(400).json({ message: error.message });
+      }
+    }; 
+
+    module.exports = {
+      createLand,
+      getLands,
+      getLandById,
+      updateLand,
+      deleteLand,
+      verifyLand
+    };
